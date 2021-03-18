@@ -110,7 +110,6 @@ class Wallet(object):
         
     @property
     def address(self):
-        """We take a shortcut and say address is public key"""
         return binascii.hexlify(self._public_key.exportKey(format='DER')).decode('ascii')
     
     def sign(self, message):
@@ -123,7 +122,7 @@ class Wallet(object):
     
 def verify_signature(wallet_address, message, signature):
     """
-    Check that the provided `signature` corresponds to `message`
+    Checking that the provided `signature` corresponds to `message`
     signed by the wallet at `wallet_address`
     """
     pubkey = RSA.importKey(binascii.unhexlify(wallet_address))
@@ -132,7 +131,7 @@ def verify_signature(wallet_address, message, signature):
     return verifier.verify(h, binascii.unhexlify(signature))
 
 
-# Check that the wallet signing functionality works
+# Checking that the wallet signing functionality works
 w1 = Wallet()
 signature = w1.sign('foobar')
 assert verify_signature(w1.address, 'foobar', signature)
@@ -179,7 +178,7 @@ class TransactionOutput(object):
         
 def compute_fee(inputs, outputs):
     """
-    Compute the transaction fee by computing the difference between total input and total output
+    Computing the transaction fee by computing the difference between total input and total output
     """
     total_in = sum(i.transaction.outputs[i.output_index].amount for i in inputs)
     total_out = sum(o.amount for o in outputs)
@@ -190,7 +189,7 @@ def compute_fee(inputs, outputs):
 class Transaction(object):
     def __init__(self, wallet, inputs, outputs):
         """
-        Create a transaction spending money from the provided wallet
+        Creating a transaction spending money from the provided wallet
         """
         self.inputs = inputs
         self.outputs = outputs
@@ -225,7 +224,6 @@ class GenesisTransaction(Transaction):
         self.signature = 'genesis'
         
     def to_dict(self, include_signature=False):
-        # TODO: Instead, should sign genesis transaction will well-known public key ?
         assert not include_signature, "Cannot include signature of genesis transaction"
         return super().to_dict(include_signature=False)
 
@@ -283,11 +281,11 @@ def compute_balance(wallet_address, transactions):
     """
     balance = 0
     for t in transactions:
-        # Subtract all the money that the address sent out
+        # Subtracting all the money that the address sent out
         for txin in t.inputs:
             if txin.parent_output.recipient == wallet_address:
                 balance -= txin.parent_output.amount
-        # Add all the money received by the address
+        # Adding all the money received by the address
         for txout in t.outputs:
             if txout.recipient == wallet_address:
                 balance += txout.amount
@@ -300,7 +298,7 @@ print("Walter has %.02f dumbcoins" % compute_balance(walter.address, transaction
 
 def verify_transaction(transaction):
     """
-    Verify that the transaction is valid.
+    Verifying that the transaction is valid.
     We need to verify two things :
     - That all of the inputs of the transaction belong to the same wallet
     - That the transaction is signed by the owner of said wallet
@@ -310,13 +308,13 @@ def verify_transaction(transaction):
         # TODO: We should probably be more careful about validating genesis transactions
         return True
     
-    # Verify input transactions
+    # Verifying input transactions
     for tx in transaction.inputs:
         if not verify_transaction(tx.transaction):
             logging.error("Invalid parent transaction")
             return False
     
-    # Verify a single wallet owns all the inputs
+    # Verifying a single wallet owns all the inputs
     first_input_address = transaction.inputs[0].parent_output.recipient
     for txin in transaction.inputs[1:]:
         if txin.parent_output.recipient != first_input_address:
@@ -330,7 +328,7 @@ def verify_transaction(transaction):
         logging.error("Invalid transaction signature, trying to spend someone else's money ?")
         return False
     
-    # Call compute_fee here to trigger an assert if output sum is great than input sum. Without this,
+    # Here compute_fee is called to trigger an assert if output sum is great than input sum. Without this,
     # a miner could put such an invalid transaction.
     compute_fee(transaction.inputs, transaction.outputs)
     
@@ -367,7 +365,7 @@ DIFFICULTY = 2
 
 
 def compute_total_fee(transactions):
-    """Return the total fee for the set of transactions"""
+    """Returns the total fee for the set of transactions"""
     return sum(t.fee for t in transactions)
 
 
@@ -449,7 +447,7 @@ def verify_block(block, genesis_block, used_outputs=None):
     if not all(map(verify_transaction, block.transactions)):
         return False
     
-    # Verify that transactions in this block don't use already spent outputs
+    # Verifying that transactions in this block don't use already spent outputs
     #
     # Note that we could move this in verify_transaction, but this would require some passing the used_outputs
     # around more. So we do it here for simplicity
@@ -460,13 +458,13 @@ def verify_block(block, genesis_block, used_outputs=None):
                 return False
             used_outputs.add(i.parent_output)
     
-    # Verify ancestors up to the genesis block
+    # Verifying ancestors up to the genesis block
     if not (block.hash == genesis_block.hash):
         if not verify_block(block.ancestor, genesis_block, used_outputs):
             logging.error("Failed to validate ancestor block")
             return False
     
-    # Verify the first transaction is the miner's reward
+    # Verifying the first transaction is the miner's reward
     tx0 = block.transactions[0]
     if not isinstance(tx0, GenesisTransaction):
         logging.error("Transaction 0 is not a GenesisTransaction")
